@@ -30,7 +30,7 @@ const client = new Client({
   partials: [Partials.Channel],
 });
 
-const PREFIX = process.env.PREFIX || "?";
+const PREFIX = process.env.PREFIX || "+";
 
 /* ===================== READY ===================== */
 client.once("ready", () => {
@@ -175,6 +175,113 @@ client.on("messageCreate", async (message) => {
     await db.set(`bal_${message.author.id}`, bal + 200);
     message.reply("You worked and earned $200");
   }
+
+  if (cmd === "beg") {
+  let amount = Math.floor(Math.random() * 200) + 1;
+  let bal = await db.get(`bal_${message.author.id}`) || 0;
+
+  await db.set(`bal_${message.author.id}`, bal + amount);
+  message.reply(`You begged and got 💰 $${amount}`);
+}
+
+  if (cmd === "rob") {
+  const user = message.mentions.users.first();
+  if (!user) return message.reply("Mention someone to rob!");
+
+  let targetBal = await db.get(`bal_${user.id}`) || 0;
+  let robberBal = await db.get(`bal_${message.author.id}`) || 0;
+
+  if (targetBal < 100) return message.reply("User is too poor to rob!");
+
+  let stolen = Math.floor(Math.random() * targetBal);
+
+  await db.set(`bal_${user.id}`, targetBal - stolen);
+  await db.set(`bal_${message.author.id}`, robberBal + stolen);
+
+  message.reply(`You robbed 💰 $${stolen} from ${user.username}`);
+}
+
+  if (cmd === "deposit") {
+  let amount = parseInt(args[0]);
+  let bal = await db.get(`bal_${message.author.id}`) || 0;
+
+  if (!amount || bal < amount) return message.reply("Invalid amount");
+
+  await db.set(`bal_${message.author.id}`, bal - amount);
+  await db.add(`bank_${message.author.id}`, amount);
+
+  message.reply(`Deposited 💰 $${amount} into bank`);
+}
+
+  if (cmd === "crime") {
+  let success = Math.random() > 0.5;
+  let bal = await db.get(`bal_${message.author.id}`) || 0;
+
+  if (success) {
+    let gain = Math.floor(Math.random() * 1000);
+    await db.set(`bal_${message.author.id}`, bal + gain);
+    message.reply(`🟢 Crime successful! +$${gain}`);
+  } else {
+    let loss = Math.floor(Math.random() * 500);
+    await db.set(`bal_${message.author.id}`, bal - loss);
+    message.reply(`🔴 Caught! -$${loss}`);
+  }
+}
+
+  if (cmd === "coinflip") {
+  let choice = args[0];
+  let result = Math.random() < 0.5 ? "heads" : "tails";
+
+  if (choice === result) {
+    message.reply(`You won! It was ${result}`);
+  } else {
+    message.reply(`You lost! It was ${result}`);
+  }
+}
+
+  if (cmd === "slots") {
+  let amount = parseInt(args[0]);
+  let bal = await db.get(`bal_${message.author.id}`) || 0;
+
+  if (bal < amount) return message.reply("Not enough money");
+
+  let emojis = ["🍒", "🍋", "🍉"];
+  let result = emojis.sort(() => Math.random() - 0.5).slice(0, 3);
+
+  let win = result[0] === result[1] && result[1] === result[2];
+
+  if (win) {
+    await db.set(`bal_${message.author.id}`, bal + amount);
+    message.reply(`🎰 ${result.join(" ")} You won!`);
+  } else {
+    await db.set(`bal_${message.author.id}`, bal - amount);
+    message.reply(`🎰 ${result.join(" ")} You lost!`);
+  }
+}
+
+  if (cmd === "leaderboard") {
+  let all = db.all().filter(d => d.id.startsWith("bal_"));
+
+  all.sort((a, b) => b.value - a.value);
+
+  let top = all.slice(0, 10);
+
+  let msg = top.map((u, i) => `#${i + 1} <@${u.id.replace("bal_", "")}> - $${u.value}`).join("\n");
+
+  message.channel.send("🏆 **Leaderboard**\n" + msg);
+}
+
+  if (cmd === "withdraw") {
+  let amount = parseInt(args[0]);
+  let bank = await db.get(`bank_${message.author.id}`) || 0;
+
+  if (!amount || bank < amount) return message.reply("Not enough in bank");
+
+  await db.set(`bank_${message.author.id}`, bank - amount);
+  await db.add(`bal_${message.author.id}`, amount);
+
+  message.reply(`Withdrew 💰 $${amount}`);
+}
 
   if (cmd === "pay") {
     const user = message.mentions.users.first();
