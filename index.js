@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const {
   Client,
   GatewayIntentBits,
@@ -18,7 +20,7 @@ const client = new Client({
   partials: Object.values(Partials)
 });
 
-const TOKEN = "YOUR_TOKEN";
+const TOKEN = process.env.BOT_TOKEN;
 const LOG_CHANNEL = "1500169350307647488";
 
 let invites = new Map();
